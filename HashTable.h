@@ -1,37 +1,27 @@
+#ifndef HASHTABLE_H
+#define HASHTABLE_H
 
-#ifndef HASH_TABLE_H
-#define HAS_TABLE_H
 #include <string>
-
-#define HASH_TABLE_SIZE 25000000
-using namespace std;
-
-struct hashNode
-{
-public:
-	unsigned int key;
-	string concatWord;
-	int counter;
-	hashNode(unsigned int key, string concatWord, int counter)
-	{
-		this->key = key;
-		this->concatWord = concatWord;
-		this->counter = counter;
-	}
-};
+#include <vector>
+#include <list>
 
 class HashTable {
 private:
-	unsigned int currentLength;
-	hashNode** hashTable;
-
+    static const int DEFAULT_SIZE = 1024;
+    std::vector<std::list<int>> table;
+    int count;
+    
+    // Hash function
+    int hash(int key) const;
+    
 public:
-	HashTable();
-	unsigned int hashMap(string);
-	unsigned int hashFunction(unsigned int);
-	void insert(string);
-	int search(string);
-
+    HashTable(int size = DEFAULT_SIZE);
+    
+    // Main operations
+    int buildFromFile(const std::string& filename);
+    int getSize() const;
+    bool search(int key) const;
+    void insert(int key);
 };
 
-#endif// HASH_TABLE_H
+#endif // HASHTABLE_H

@@ -1,61 +1,64 @@
-
 #include "HashTable.h"
+#include <fstream>
+#include <stdexcept>
 
-using namespace std;
+HashTable::HashTable(int size) : table(size), count(0) {}
 
-HashTable::HashTable()
-{
-    currentLength = 0;
-    hashTable = new hashNode * [HASH_TABLE_SIZE];
-    for (int i = 0; i < HASH_TABLE_SIZE; i++)
-    {
-        hashTable[i] = nullptr;
+// Hash function
+int HashTable::hash(int key) const {
+    return key % table.size();
+}
+
+// Build hash table from file
+int HashTable::buildFromFile(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Unable to open file: " + filename);
     }
-}
-
-unsigned int HashTable::hashMap(string concatWord)
-{
-    int certainConstant = 5;
-    unsigned int hashKey = 0;
-    for (int i = 0; i < concatWord.length(); i++)
-    {
-        hashKey = certainConstant * hashKey + concatWord.at(i);
+    
+    // Clear existing hash table
+    for (auto& list : table) {
+        list.clear();
     }
-    return hashKey;
+    count = 0;
+    
+    // Read numbers and insert into hash table
+    int number;
+    while (file >> number) {
+        insert(number);
+    }
+    
+    file.close();
+    return count;
 }
 
-unsigned int HashTable::hashFunction(unsigned int hashKey)
-{
-    return hashKey % HASH_TABLE_SIZE;
+// Get size of hash table
+int HashTable::getSize() const {
+    return count;
 }
 
-void HashTable::insert(string concatWord)
-{
-    unsigned int certainKey = hashMap(concatWord);
-    unsigned int hashKey = hashFunction(certainKey);
-    while (hashTable[hashKey] != nullptr)
-    {
-        if (hashTable[hashKey]->key == certainKey && (hashTable[hashKey]->concatWord == concatWord))
-        {
-            hashTable[hashKey]->counter = hashTable[hashKey]->counter + 1;
-            return;
+// Search for a key
+bool HashTable::search(int key) const {
+    int index = hash(key);
+    const std::list<int>& list = table[index];
+    
+    for (int value : list) {
+        if (value == key) {
+            return true;
         }
-        hashKey = (hashKey + 1) % HASH_TABLE_SIZE;
     }
-    hashTable[hashKey] = new hashNode(certainKey, concatWord, 1);
-    currentLength++;
+    
+    return false;
 }
 
-int HashTable::search(string concatWord)
-{
-    unsigned int certainKey = hashMap(concatWord);
-    unsigned int hashKey = hashFunction(certainKey);
-
-    while (hashTable[hashKey] != nullptr && hashTable[hashKey]->key != certainKey)
-    {
-        hashKey = (hashKey + 1) % HASH_TABLE_SIZE;
+// Insert a key
+void HashTable::insert(int key) {
+    // Check if key already exists
+    if (search(key)) {
+        return;
     }
-    if (hashTable[hashKey] == nullptr)
-        return 0;
-    return hashTable[hashKey]->counter;
+    
+    int index = hash(key);
+    table[index].push_back(key);
+    count++;
 }

@@ -1,173 +1,322 @@
-//#pragma warning(disable : 4996)
 #include <iostream>
 #include <fstream>
-#include <time.h>
+#include <string>
+#include <sstream>
 #include <chrono>
-#include <cstring>
-#include <ctime>
-
-//Import Data Structure Classes
-#include "UnorderedTable.h"
-#include "OrderedMap.h"
-#include "BinaryTree.h"
-#include "AVL.h"
+#include "MinHeap.h"
+#include "MaxHeap.h"
+#include "AVLTree.h"
+#include "Graph.h"
 #include "HashTable.h"
-#include "UnorderedMap.h"
 
 using namespace std;
-using namespace chrono;  // For time
+using namespace std::chrono;
 
-int main()
-{
-    char exludedCharacters[] = " ?><'�;{}!@#$%^&*()+-.=/,`~_[] ";  //Characters to be excluded
+// Function to measure execution time
+template<typename Func>
+std::pair<typename std::result_of<Func()>::type, long long> measureExecutionTime(Func func) {
+    auto start = high_resolution_clock::now();
+    auto result = func();
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start).count();
+    return std::make_pair(result, duration);
+}
 
-    //Initializations of our Data Structures, file readers-writers and important times to sum up
-    ifstream fileread;
-    ofstream output;
-    UnorderedTable* unorderedT = new UnorderedTable;
-    OrderedMap* ordered = new OrderedMap;
-    BinaryTree* bst = new BinaryTree;
-    AVL* avl = new AVL;
-    HashTable* ht = new HashTable;
-    UnorderedMap* unordered = new UnorderedMap;
-
-
-    //time relating variables
-    double create1 = 0.;
-    double create2 = 0.;
-    double create3 = 0.;
-    double create4 = 0.;
-    double create5 = 0.;
-    double create6 = 0.;
-    double searche1 = 0.;
-    double searche2 = 0.;
-    double searche3 = 0.;
-    double searche4 = 0.;
-    double searche5 = 0.;
-    double searche6 = 0.;
-
-    clock_t start;
-
-    string stringFromText;
-    string randomWords[1000]; // 1000 random concatenated words to search later
-
-    fileread.open("small-file.txt");
-    output.open("output.txt");
-    //fileread.open("gutenberg.txt");
-
-    int count = 0;
-    int countAdd = 0;
-    char input[10000];
-    char* command;
-    string firstWord;
-
-    while (!fileread.eof())
-    {
-        fileread.getline(input, 10000);
-
-        command = strtok(input, exludedCharacters);
-
-        while (command != NULL)
-        {
-            string a = (string)command;
-            for (unsigned int i = 0; i < a.size(); i++)
-            {
-                command[i] = tolower(command[i]);
+int main() {
+    ifstream commandFile("commands.txt");
+    ofstream outputFile("output.txt");
+    
+    if (!commandFile.is_open()) {
+        cerr << "Unable to open commands.txt" << endl;
+        return 1;
+    }
+    
+    if (!outputFile.is_open()) {
+        cerr << "Unable to open output.txt" << endl;
+        return 1;
+    }
+    
+    string line;
+    MinHeap minHeap;
+    MaxHeap maxHeap;
+    AVLTree avlTree;
+    Graph graph;
+    HashTable hashTable;
+    
+    while (getline(commandFile, line)) {
+        istringstream iss(line);
+        string command, structure;
+        iss >> command >> structure;
+        
+        if (command == "BUILD") {
+            string filename;
+            iss >> filename;
+            
+            if (structure == "MINHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return minHeap.buildFromFile(filename);
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MINHEAP built with " << result << " elements. (" << duration << " μs)" << endl;
+            } 
+            else if (structure == "MAXHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return maxHeap.buildFromFile(filename);
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MAXHEAP built with " << result << " elements. (" << duration << " μs)" << endl;
             }
-
-            if (count != 0)
-            {
-                string final_string = firstWord + "-" + (string)command;
-
-                start = clock();
-                unorderedT->insert(final_string);
-                create1 = create1 + double(clock() - start);
-
-                start = clock();
-                ordered->insert(final_string);
-                create2 = create2 + double(clock() - start);
-
-                start = clock();
-                bst->insert(final_string, bst->getRoot());
-                create3 = create3 + double(clock() - start);
-
-                start = clock();
-                avl->insert(final_string, avl->getRoot());
-                create4 = create4 + double(clock() - start);
-
-                start = clock();
-                ht->insert(final_string);
-                create5 = create5 + double(clock() - start);
-
-                start = clock();
-                unordered->insert(final_string);
-                create6 = create6 + double(clock() - start);
-
-                if (count % 100 == 0 && countAdd < 1000)
-                {
-                    randomWords[countAdd] = final_string;
-                    countAdd = countAdd + 1;
-                }
+            else if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return avlTree.buildFromFile(filename);
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE built with " << result << " elements. (" << duration << " μs)" << endl;
             }
-
-            firstWord = (string)command;
-            command = strtok(NULL, exludedCharacters);
-            count = count + 1;
+            else if (structure == "GRAPH") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return graph.buildFromFile(filename);
+                });
+                auto vertices_edges = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "GRAPH built with " << vertices_edges.first << " vertices and " 
+                         << vertices_edges.second << " edges. (" << duration << " μs)" << endl;
+            }
+            else if (structure == "HASHTABLE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return hashTable.buildFromFile(filename);
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "HASHTABLE built with " << result << " elements. (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "GETSIZE") {
+            if (structure == "MINHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return minHeap.getSize();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MINHEAP size: " << result << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "MAXHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return maxHeap.getSize();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MAXHEAP size: " << result << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return avlTree.getSize();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE size: " << result << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "GRAPH") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return graph.getSize();
+                });
+                auto vertices_edges = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "GRAPH vertices: " << vertices_edges.first << ", edges: " << vertices_edges.second 
+                         << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "HASHTABLE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return hashTable.getSize();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "HASHTABLE size: " << result << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "FINDMIN") {
+            if (structure == "MINHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return minHeap.findMin();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MINHEAP min element: " << result << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return avlTree.findMin();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE min element: " << result << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "FINDMAX") {
+            if (structure == "MAXHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return maxHeap.findMax();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MAXHEAP max element: " << result << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "SEARCH") {
+            int number;
+            iss >> number;
+            
+            if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return avlTree.search(number);
+                });
+                bool result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE search " << number << ": " << (result ? "SUCCESS" : "FAILURE") 
+                         << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "HASHTABLE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return hashTable.search(number);
+                });
+                bool result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "HASHTABLE search " << number << ": " << (result ? "SUCCESS" : "FAILURE") 
+                         << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "COMPUTESHORTESTPATH") {
+            int node1, node2;
+            iss >> node1 >> node2;
+            
+            auto result_pair = measureExecutionTime([&]() {
+                return graph.computeShortestPath(node1, node2);
+            });
+            int result = result_pair.first;
+            long long duration = result_pair.second;
+            outputFile << "GRAPH shortest path from " << node1 << " to " << node2 << ": " 
+                     << result << " (" << duration << " μs)" << endl;
+        }
+        else if (command == "COMPUTESPANNINGTREE") {
+            auto result_pair = measureExecutionTime([&]() {
+                return graph.computeSpanningTree();
+            });
+            int result = result_pair.first;
+            long long duration = result_pair.second;
+            outputFile << "GRAPH minimum spanning tree cost: " << result << " (" << duration << " μs)" << endl;
+        }
+        else if (command == "FINDCONNECTEDCOMPONENTS") {
+            auto result_pair = measureExecutionTime([&]() {
+                return graph.findConnectedComponents();
+            });
+            int result = result_pair.first;
+            long long duration = result_pair.second;
+            outputFile << "GRAPH connected components: " << result << " (" << duration << " μs)" << endl;
+        }
+        else if (command == "INSERT") {
+            int number;
+            iss >> number;
+            
+            if (structure == "MINHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    minHeap.insert(number);
+                    return 0;
+                });
+                long long duration = result_pair.second;
+                outputFile << "MINHEAP inserted " << number << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "MAXHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    maxHeap.insert(number);
+                    return 0;
+                });
+                long long duration = result_pair.second;
+                outputFile << "MAXHEAP inserted " << number << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    avlTree.insert(number);
+                    return 0;
+                });
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE inserted " << number << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "HASHTABLE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    hashTable.insert(number);
+                    return 0;
+                });
+                long long duration = result_pair.second;
+                outputFile << "HASHTABLE inserted " << number << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "GRAPH") {
+                int node1 = number;
+                int node2, weight;
+                iss >> node2 >> weight;
+                
+                auto result_pair = measureExecutionTime([&]() {
+                    graph.insertEdge(node1, node2, weight);
+                    return 0;
+                });
+                long long duration = result_pair.second;
+                outputFile << "GRAPH inserted edge " << node1 << " -- " << node2 
+                         << " with weight " << weight << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "DELETEMIN") {
+            if (structure == "MINHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return minHeap.deleteMin();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MINHEAP deleted min: " << result << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "DELETEMAX") {
+            if (structure == "MAXHEAP") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return maxHeap.deleteMax();
+                });
+                int result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "MAXHEAP deleted max: " << result << " (" << duration << " μs)" << endl;
+            }
+        }
+        else if (command == "DELETE") {
+            int number;
+            iss >> number;
+            
+            if (structure == "AVLTREE") {
+                auto result_pair = measureExecutionTime([&]() {
+                    return avlTree.remove(number);
+                });
+                bool result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "AVLTREE deleted " << number << ": " << (result ? "SUCCESS" : "FAILURE") 
+                         << " (" << duration << " μs)" << endl;
+            }
+            else if (structure == "GRAPH") {
+                int node1 = number;
+                int node2;
+                iss >> node2;
+                
+                auto result_pair = measureExecutionTime([&]() {
+                    return graph.removeEdge(node1, node2);
+                });
+                bool result = result_pair.first;
+                long long duration = result_pair.second;
+                outputFile << "GRAPH deleted edge " << node1 << " -- " << node2 << ": " 
+                         << (result ? "SUCCESS" : "FAILURE") << " (" << duration << " μs)" << endl;
+            }
         }
     }
-
-
-    output << "Create time for UNORDERED TABLE: " << create1 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Create time for ORDERED TABLE: " << create2 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Create time for BINARY TREE: " << create3 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Create time for AVL: " << create4 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Create time for HASH TABLE: " << create5 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Create time for UNORDERED MAP: " << create6 / CLOCKS_PER_SEC << "seconds" << endl;
-
-    //Searching the 1000 concatenated words on every Data Structure
-    int var, var1, var2, var3, var4, var5;
-
-    for (int i = 0; i <= 999; i++)
-    {
-        start = clock();
-        var = unorderedT->search(randomWords[i]);
-        searche1 = searche1 + double(clock() - start);
-
-        start = clock();
-        var1 = ordered->search(randomWords[i]);
-        searche2 = searche2 + double(clock() - start);
-
-        start = clock();
-        var2 = bst->search(randomWords[i], bst->getRoot());
-        searche3 = searche3 + double(clock() - start);
-
-        start = clock();
-        var3 = avl->search(randomWords[i], avl->getRoot());
-        searche4 = searche4 + double(clock() - start);
-
-        start = clock();
-        var4 = ht->search(randomWords[i]);
-        searche5 = searche5 + double(clock() - start);
-
-        start = clock();
-        var5 = unordered->search(randomWords[i]);
-        searche6 = searche6 + double(clock() - start);
-
-        output << randomWords[i] << " " << var << " " << var1 << " " << var2 << " " << var3 << " " << var4 << " " << var5 << " " << endl;
-
-    }
-
-
-    output << "Search time for 1000 words in UNORDERED TABLE: " << searche1 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Search time for 1000 words in ORDERED TABLE: " << searche2 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Search time for 1000 words in BINARY TREE: " << searche3 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Search time for 1000 words in AVL: " << searche4 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Search time for 1000 words in HASH TABLE: " << searche5 / CLOCKS_PER_SEC << "seconds" << endl;
-    output << "Search time for 1000 words in UNORDERED MAP: " << searche6 / CLOCKS_PER_SEC << "seconds" << endl;
-
-
-    //fileread.close();
-    output.close();
+    
+    commandFile.close();
+    outputFile.close();
+    
     return 0;
-
 }
